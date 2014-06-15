@@ -31,7 +31,7 @@ readplinkout = function(filename, colnameSelect=c("CHR", "SNP", "BP", "P")) {
     filtercmd
 
     ## filtercmd
-    plinkRes0 = read.table(pipe(filtercmd), header = FALSE)
+    plinkRes0 = read.table(pipe(filtercmd), header = FALSE, stringsAsFactors = FALSE)
     plinkRes0 = setNames(plinkRes0, cnames[colSelectIdx])
     head(plinkRes0)
     plinkRes0

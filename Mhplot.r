@@ -57,12 +57,13 @@ Mhplot$methods(
 Mhplot$methods(
     getmhplot = function() {
         mydat = getdf()
-        maxlogp = ceiling(max(mlogp))
-        minlogp = min(mlogp)
+        maxlogp = ceiling(max(mlogp, na.rm = TRUE))
+        minlogp = min(mlogp, na.rm = TRUE)
         gwthresh = -log10(5e-8)
         myplot = ggplot(mydat, aes(sbp, mlogp, color=factor(achr%%2))) +
-                scale_x_continuous(breaks=unique(achr), minor_breaks=NA, labels=unique(chr)) +
-                scale_y_continuous(breaks=c(seq(ceiling(minlogp), maxlogp, by=1), gwthresh), limits=c(minlogp, maxlogp)) + 
+                scale_x_continuous(breaks=unique(achr), minor_breaks=NULL, labels=unique(chr)) +
+                ## scale_y_continuous(breaks=c(seq(ceiling(minlogp), maxlogp, by=1), gwthresh), limits=c(minlogp, maxlogp)) + 
+                scale_y_continuous(limits=c(minlogp, maxlogp), minor_breaks=NULL) + 
                 geom_point() +
                 scale_color_manual(values = c("gray20", "gray60"), guide=FALSE) +
                 geom_hline(yintercept=gwthresh, alpha=.3, color="blue") + 
@@ -79,8 +80,8 @@ Mhplot$methods(
             stop("CHR must be in order (1,2,3...22, for example)!")
         }
         nsnp <<- length(bpinit)
-        if(length(chrinit) != nsnp) {
-            stop("CHR and BP do not match in length!")
+        if(length(chrinit) != nsnp | length(pvalsinit) != nsnp) {
+            stop("CHR, BP and P do not match in length!")
         }
         chr <<- chrinit
         bp <<-bpinit
