@@ -49,32 +49,40 @@ Mhplot$methods(
 
 Mhplot$methods(
     getdf = function() {
-        df = data.frame(chr, achr, sbp, pvals, mlogp)
+        df = data.frame(chr, snp, bp, pvals)
         df
     }
 )
 
 Mhplot$methods(
-    getmhplot = function() {
+    getmhplot = function(annotation=NULL) {
         mydat = getdf()
         maxlogp = ceiling(max(mlogp, na.rm = TRUE))
         minlogp = min(mlogp, na.rm = TRUE)
         gwthresh = -log10(5e-8)
         myplot = ggplot(mydat, aes(sbp, mlogp, color=factor(achr%%2))) +
                 scale_x_continuous(breaks=unique(achr), minor_breaks=NULL, labels=unique(chr)) +
-                ## scale_y_continuous(breaks=c(seq(ceiling(minlogp), maxlogp, by=1), gwthresh), limits=c(minlogp, maxlogp)) + 
                 scale_y_continuous(limits=c(minlogp, maxlogp), minor_breaks=NULL) + 
                 geom_point() +
                 scale_color_manual(values = c("gray20", "gray60"), guide=FALSE) +
                 geom_hline(yintercept=gwthresh, alpha=.3, color="blue") + 
                 xlab("CHR BP") + ylab("-log P")
+
+        # todo: annotation
+        if(!is.null(annotation)) {
+            if(snp == "0") {
+                stop("You must initialize me with an vector of SNP names if you want to annotate!")
+            } else {
+            }
+        }
+
         return(myplot)
     }
 )
 
 
 Mhplot$methods(
-    initialize = function(chrinit, bpinit, pvalsinit) {
+    initialize = function(chrinit, bpinit, pvalsinit, snpinit="0") {
         if(any(sort(chrinit) != chrinit)) {
             message("I will not sort CHR for you, since this might mess up with the other columns of your data!")
             stop("CHR must be in order (1,2,3...22, for example)!")
@@ -83,6 +91,7 @@ Mhplot$methods(
         if(length(chrinit) != nsnp | length(pvalsinit) != nsnp) {
             stop("CHR, BP and P do not match in length!")
         }
+        snp <<- snpinit
         chr <<- chrinit
         bp <<-bpinit
         pvals <<- pvalsinit
