@@ -18,7 +18,11 @@ Plotcoll = setRefClass("Plotcoll",
         chr = "matrix",
         snp = "matrix",
         bp = "matrix",
-        pvals = "matrix"
+        chr2 = "matrix",
+        snp2 = "matrix",
+        bp2 = "matrix",
+        pvals = "matrix",
+        minPvals = "numeric"
     ))
 Plotcoll$methods(
     getNshiftStr = function(shiftpath) {
@@ -58,6 +62,28 @@ Plotcoll$methods(
 )
 
 Plotcoll$methods(
+    shiftDataByCol = function(dat) {
+        nr = nrow(dat)
+        nc = ncol(dat)
+        newdat = matrix(NA, nr, nc)
+        for(i in 1:nc) {
+            colShiftN = as.integer(colnames(dat)[i])
+            newdat[1:(nr-colShiftN), i] = dat[(colShiftN+1):nr, 1]
+        }
+        colnames(newdat) = colnames(dat)
+        newdat
+    }
+)
+
+Plotcoll$methods(
+    snp2info = function() {
+        chr2 <<- shiftDataByCol(chr)
+        snp2 <<- shiftDataByCol(snp)
+        bp2 <<-shiftDataByCol(bp)
+    }
+)
+
+Plotcoll$methods(
     readout = function(tagname) {
         outRdata = paste(bedstem, "RData", sep = ".")
         if(file.exists(outRdata)) {
@@ -85,6 +111,7 @@ Plotcoll$methods(
             addFiles = shiftFilesStem[addIdx]
 
             if(length(addFiles) > 0) {
+                fileAdded = TRUE
                 message("It looks like you have added some new files, let me read them: ")
                 print(addFiles)
 
@@ -105,6 +132,8 @@ Plotcoll$methods(
                     colnames(currentEnv$pvals)[pcounter] = addcoln
                     pcounter = pcounter + 1
                 }
+            } else {
+                fileAdded = FALSE
             }
 
 
@@ -115,6 +144,7 @@ Plotcoll$methods(
             selectIdx = which(hasColnames %in% nshiftStrs)
             rmIdx = which(!(hasColnames %in% nshiftStrs))
             if(length(selectIdx) != length(hasColnames)) {
+                fileRemoved = TRUE
                 rmColname = hasColnames[rmIdx]
                 rmFiles = sapply(rmColname, function(col) {
                     sprintf("%s%04d", shiftstemCommon, as.integer(col))
@@ -126,6 +156,8 @@ Plotcoll$methods(
                 currentEnv$snp = currentEnv$snp[, selectIdx]
                 currentEnv$bp = currentEnv$bp[, selectIdx]
                 currentEnv$pvals = currentEnv$pvals[, selectIdx]
+            } else {
+                fileRemoved = FALSE
             }
 
             # assign into the class!
@@ -133,8 +165,13 @@ Plotcoll$methods(
             snp <<- snp
             bp <<- bp
             pvals <<- pvals
-            # save changes back to disk!
-            save(chr, snp, bp, pvals, file=outRdata)
+
+            if(fileAdded | fileRemoved) {
+                message("Saving changes back to RData file...")
+                save(chr, snp, bp, pvals, file=outRdata)
+            } else {
+                message("I did not see any change, keep the RData file as it is.")
+            }
         } else {
             # set up matrices
             pvalsNcols = length(nshiftStrs)
@@ -164,6 +201,9 @@ Plotcoll$methods(
             message("Saving to ", outRdata, "...")
             save(chr, snp, bp, pvals, file=outRdata)
         }
+        minPvals <<- do.call(pminNoNA, as.data.frame(pvals))
+        message("Update info for SNP2...")
+        snp2info()
     }
 )
 
@@ -177,7 +217,7 @@ Plotcoll$methods(
 
 Plotcoll$methods(
     minpmh = function() {
-        minpplotObj = Mhplot(chr[, 1], bp[, 1], do.call(pminNoNA, as.data.frame(pvals)))
+        minpplotObj = Mhplot(chr[, 1], bp[, 1], minPvals)
         minpplot = minpplotObj$getmhplot()
         minpplot = minpplot + geom_hline(yintercept = -log10(5e-8 / nshiftMax), color="yellow", alpha=0.2)
         minpplot
@@ -196,11 +236,68 @@ Plotcoll$methods(
         nindiv <<- R.utils::countLines(fampath)
         nshiftMax <<- length(shiftFilesStem)
         pvals <<- matrix(1, 1, 1)
-        chr <<- matrix(0)
-        snp <<- matrix(0)
-        bp <<- matrix(0)
+        chr <<- matrix(, 0, 0)
+        snp <<- matrix(, 0, 0)
+        bp <<- matrix(, 0, 0)
+        chr2 <<- matrix(, 0, 0)
+        snp2 <<- matrix(, 0, 0)
+        bp2 <<- matrix(, 0, 0)
     }
 )
+
+
+
+##1######################################
+setwd("~/data/sskn_regions_from_fan/AgeSexSskn/")
+plotobj = Plotcoll("sskn_reg.bed")
+plotobj$readout("assoc.linear")
+datForLocusZoom = data.frame(CHR=plotobj$chr[, 1], SNP=plotobj$snp[, 1], BP=plotobj$bp[, 1], P=plotobj$minPvals)
+
+for(nchr in unique(datForLocusZoom$CHR)) {
+    tmpdat = datForLocusZoom[which(datForLocusZoom$CHR == nchr), ]
+    print(nchr)
+    print(range(tmpdat$BP))
+    print(range(tmpdat$P, na.rm = TRUE))
+}
+
+write.table(datForLocusZoom, file = "datForLocusZoom.txt", col.names=TRUE, quote=FALSE, row.names=FALSE)
+
+require(ggplot2)
+## Baseplot = plotobj$basemh() + geom_point(size=19)
+## Minpplot = plotobj$minpmh() + geom_point(size=19)
+Baseplot = plotobj$basemh()
+Minpplot = plotobj$minpmh()
+print(Baseplot)
+print(Minpplot)
+ggsave(rs1exoBaseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknBaseplot.png", width = 9, height = 5)
+ggsave(rs1exoMinpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknMinpplot.png", width = 9, height = 5)
+##2######################################
+
+## setwd("~/data/sskn_regions_from_fan/AgeSexRed/")
+## plotobj = Plotcoll("sskn_reg.bed")
+## plotobj$readout("assoc.logistic")
+## require(ggplot2)
+## Baseplot = plotobj$basemh() + geom_point(size=15)
+## Minpplot = plotobj$minpmh() + geom_point(size=15)
+## ## png("/tmp/x.png", width = 5000, height = 2500)
+## print(Baseplot)
+## ## dev.off()
+## print(Minpplot)
+## ggsave(Baseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegRedBaseplot.png", width = 9, height = 5, scale=5)
+## ggsave(Minpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegRedMinpplot.png", width = 9, height = 5, scale=5)
+
+## plotobj$bimpath
+## plotobj$fampath
+## plotobj$nsnp
+## plotobj$nindiv
+## plotobj$bytesSnp
+## plotobj$bytesTotal
+## plotobj$sayhi("Kaiyin")
+
+
+## ?png
+## ?ggsave
+
 
 ## setwd("~/data/rs1exoseq/testReadout/")
 ## plotobj = Plotcoll("ssknEx.bed")
@@ -242,38 +339,3 @@ Plotcoll$methods(
 ## rs1exoMinpplot = plotobj$minpmh()
 ## ggsave(rs1exoBaseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/rs1exoBaseplotHskn.png", width = 9, height = 3)
 ## ggsave(rs1exoMinpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/rs1exoMinpplotHskn.png", width = 9, height = 3)
-
-setwd("~/data/sskn_regions_from_fan/AgeSexRed/")
-plotobj = Plotcoll("sskn_reg.bed")
-plotobj$readout("assoc.logistic")
-head(plotobj$snp)
-head(plotobj$chr)
-head(plotobj$bp)
-head(plotobj$pvals)
-require(ggplot2)
-Baseplot = plotobj$basemh()
-Minpplot = plotobj$minpmh()
-print(Baseplot)
-print(Minpplot)
-ggsave(rs1exoBaseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegRedBaseplot.png", width = 9, height = 5)
-ggsave(rs1exoMinpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegRedMinpplot.png", width = 9, height = 5)
-
-setwd("~/data/sskn_regions_from_fan/AgeSexSskn/")
-plotobj = Plotcoll("sskn_reg.bed")
-plotobj$readout("assoc.linear")
-require(ggplot2)
-Baseplot = plotobj$basemh()
-Minpplot = plotobj$minpmh()
-print(Baseplot)
-print(Minpplot)
-ggsave(rs1exoBaseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknBaseplot.png", width = 9, height = 5)
-ggsave(rs1exoMinpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknMinpplot.png", width = 9, height = 5)
-
-## plotobj$bimpath
-## plotobj$fampath
-## plotobj$nsnp
-## plotobj$nindiv
-## plotobj$bytesSnp
-## plotobj$bytesTotal
-## plotobj$sayhi("Kaiyin")
-

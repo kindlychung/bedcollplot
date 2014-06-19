@@ -49,24 +49,43 @@ Mhplot$methods(
 
 Mhplot$methods(
     getdf = function() {
-        df = data.frame(chr, snp, bp, pvals)
+        df = data.frame(chr, achr, sbp, mlogp)
         df
     }
 )
 
 Mhplot$methods(
-    getmhplot = function(annotation=NULL) {
+    getmhplot = function(annotation=NULL, chrColor=TRUE) {
         mydat = getdf()
         maxlogp = ceiling(max(mlogp, na.rm = TRUE))
         minlogp = min(mlogp, na.rm = TRUE)
         gwthresh = -log10(5e-8)
-        myplot = ggplot(mydat, aes(sbp, mlogp, color=factor(achr%%2))) +
-                scale_x_continuous(breaks=unique(achr), minor_breaks=NULL, labels=unique(chr)) +
-                scale_y_continuous(limits=c(minlogp, maxlogp), minor_breaks=NULL) + 
-                geom_point() +
-                scale_color_manual(values = c("gray20", "gray60"), guide=FALSE) +
+        
+        # if there are more than one chr, then x axis should be labeled by scaled BP (sbp)
+        # if there is only one chr, then x axis should be labeled by BP
+        if(length(unique(chr)) > 1) {
+            myplot = ggplot(mydat, aes(sbp, mlogp)) + xlab("CHR") + 
+                     scale_x_continuous(breaks=unique(achr),
+                                        minor_breaks=NULL,
+                                        labels=unique(chr))
+        } else {
+            myplot = ggplot(mydat, aes(bp, mlogp)) + xlab(paste("Position on CHR", chr[1]))
+            chrColor = FALSE
+        }
+
+
+        if(chrColor == TRUE) {
+            myplot = myplot + geom_point(aes(color=factor(achr%%2))) + 
+                scale_color_manual(values = c("gray20", "gray60"), guide=FALSE) 
+        } else if (chrColor == FALSE) {
+            myplot = myplot + geom_point()
+        } else {
+            myplot = myplot + geom_point(color=chrColor)
+        }
+
+        myplot = myplot + scale_y_continuous(limits=c(minlogp, maxlogp), minor_breaks=NULL) +
                 geom_hline(yintercept=gwthresh, alpha=.3, color="blue") + 
-                xlab("CHR BP") + ylab("-log P")
+                ylab("-log P")
 
         # todo: annotation
         if(!is.null(annotation)) {
@@ -104,3 +123,12 @@ Mhplot$methods(
 )
 
 
+
+plinkout = readplinkout("~/data/sskn_regions_from_fan/AgeSexRed/sskn_reg.assoc.logistic")
+plinkout = plinkout[which(plinkout$CHR == 20), ]
+head(plinkout)
+plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P)
+plinkplot = plinkplotObj$getmhplot()
+print(plinkplot)
+plinkplot = plinkplot + geom_point(size=8)
+print(plinkplot)
