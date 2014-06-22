@@ -2,6 +2,7 @@ Mhplot = setRefClass(
     "Mhplot",
     fields = list(
     chr="numeric",
+    snp="character",
     bp="numeric",
     pvals="numeric",
     nsnp="numeric",
@@ -49,7 +50,7 @@ Mhplot$methods(
 
 Mhplot$methods(
     getdf = function() {
-        df = data.frame(chr, achr, sbp, mlogp)
+        df = data.frame(chr, achr, bp, sbp, mlogp)
         df
     }
 )
@@ -124,11 +125,13 @@ Mhplot$methods(
 
 
 
-plinkout = readplinkout("~/data/sskn_regions_from_fan/AgeSexRed/sskn_reg.assoc.logistic")
-plinkout = plinkout[which(plinkout$CHR == 20), ]
-head(plinkout)
-plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P)
-plinkplot = plinkplotObj$getmhplot()
-print(plinkplot)
-plinkplot = plinkplot + geom_point(size=8)
-print(plinkplot)
+## require(ggplot2)
+## plinkout = readplinkout("~/data/sskn_regions_from_fan/AgeSexRed/sskn_reg.assoc.logistic")
+## ## plinkout = plinkout[which(plinkout$CHR == 20), ]
+## plinkout = plinkout[which(plinkout$CHR == 16), ]
+## head(plinkout)
+## plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P)
+## plinkplot = plinkplotObj$getmhplot()
+## print(plinkplot)
+## plinkplot = plinkplot + geom_point(size=8)
+## print(plinkplot)
