@@ -12,8 +12,9 @@ Mhplot = setRefClass(
     # apperant chr, see function below
     achr="numeric",
     # base-pair position scaled within chr
-    sbp="numeric"
+    sbp="numeric",
     # todo: base-pair position scaled to real length of chromosome!
+    colorvec="factor"
     )
 )
 
@@ -44,6 +45,7 @@ Mhplot$methods(
             scaledPos = posDiff / (posDiff[chrNsnp] + 0.5)
             allchrScaledPos[chrcheck] = scaledPos
         }
+        allchrScaledPos = allchrScaledPos * 0.8
         sbp <<- achr + allchrScaledPos
     }
 )
@@ -51,12 +53,18 @@ Mhplot$methods(
 Mhplot$methods(
     getdf = function() {
         df = data.frame(chr, achr, bp, sbp, mlogp)
+        if(length(colorvec) > 1) {
+            df$colorvec = colorvec
+        }
+        if(length(snp) > 1) {
+            df$snp = snp
+        }
         df
     }
 )
 
 Mhplot$methods(
-    getmhplot = function(annotation=NULL, chrColor=TRUE) {
+    getmhplot = function(annotation=NULL) {
         mydat = getdf()
         maxlogp = ceiling(max(mlogp, na.rm = TRUE))
         minlogp = min(mlogp, na.rm = TRUE)
@@ -75,18 +83,17 @@ Mhplot$methods(
         }
 
 
-        if(chrColor == TRUE) {
-            myplot = myplot + geom_point(aes(color=factor(achr%%2))) + 
-                scale_color_manual(values = c("gray20", "gray60"), guide=FALSE) 
-        } else if (chrColor == FALSE) {
-            myplot = myplot + geom_point()
+        if(!is.null(mydat$colorvec)) {
+            myplot = myplot + geom_point(aes(color=colorvec), alpha=.6) 
+                ## scale_color_manual(values = c("gray20", "gray60"), guide=FALSE) 
         } else {
-            myplot = myplot + geom_point(color=chrColor)
-        }
+            myplot = myplot + geom_point(alpha=.6, color="gray")
+        } 
 
-        myplot = myplot + scale_y_continuous(limits=c(minlogp, maxlogp), minor_breaks=NULL) +
-                geom_hline(yintercept=gwthresh, alpha=.3, color="blue") + 
-                ylab("-log P")
+        myplot = myplot +
+            scale_y_continuous(limits=c(minlogp, maxlogp), minor_breaks=NULL) +
+            geom_hline(yintercept=gwthresh, alpha=.5, color="blue") + 
+            ylab("-log P")
 
         # todo: annotation
         if(!is.null(annotation)) {
@@ -102,7 +109,7 @@ Mhplot$methods(
 
 
 Mhplot$methods(
-    initialize = function(chrinit, bpinit, pvalsinit, snpinit="0") {
+    initialize = function(chrinit, bpinit, pvalsinit, snpinit="0", colorvec=factor(0)) {
         if(any(sort(chrinit) != chrinit)) {
             message("I will not sort CHR for you, since this might mess up with the other columns of your data!")
             stop("CHR must be in order (1,2,3...22, for example)!")
@@ -111,15 +118,16 @@ Mhplot$methods(
         if(length(chrinit) != nsnp | length(pvalsinit) != nsnp) {
             stop("CHR, BP and P do not match in length!")
         }
-        snp <<- snpinit
         chr <<- chrinit
         bp <<-bpinit
         pvals <<- pvalsinit
+        snp <<- snpinit
         mlogp <<- -log10(pvals)
         nchr <<- length(chr)
         chrunique <<- unique(chr)
         appChr()
         scaleByChr()
+        colorvec <<- colorvec
     }
 )
 
@@ -128,9 +136,10 @@ Mhplot$methods(
 ## require(ggplot2)
 ## plinkout = readplinkout("~/data/sskn_regions_from_fan/AgeSexRed/sskn_reg.assoc.logistic")
 ## ## plinkout = plinkout[which(plinkout$CHR == 20), ]
-## plinkout = plinkout[which(plinkout$CHR == 16), ]
-## head(plinkout)
-## plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P)
+## ## plinkout = plinkout[which(plinkout$CHR == 16), ]
+## colorvec = sample(0:1, nrow(plinkout), replace=TRUE)
+## plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P, colorvec=factor(colorvec))
+## ## plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P)
 ## plinkplot = plinkplotObj$getmhplot()
 ## print(plinkplot)
 ## plinkplot = plinkplot + geom_point(size=8)

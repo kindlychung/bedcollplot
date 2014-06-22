@@ -13,6 +13,7 @@ Plotcoll = setRefClass("Plotcoll",
         shiftFilesStem="character",
         nsnp="numeric",
         nindiv="numeric",
+        nshift = "numeric",
         nshiftMax = "numeric",
         nshiftStrs = "character",
         chr = "matrix",
@@ -22,8 +23,12 @@ Plotcoll = setRefClass("Plotcoll",
         snp2 = "matrix",
         bp2 = "matrix",
         pvals = "matrix",
-        minPvals = "numeric"
+        minPvals = "numeric",
+        minPvalsBonfer = "numeric",
+        ntests = "numeric", 
+        chrunique = "numeric"
     ))
+
 Plotcoll$methods(
     getNshiftStr = function(shiftpath) {
         nshiftStr = gsub(".*_shift_(\\d{4}).*", "\\1", shiftpath)
@@ -32,8 +37,8 @@ Plotcoll$methods(
 )
 Plotcoll$methods(
     getNshift = function(shiftpath) {
-        nshift = as.integer(getNshiftStr(shiftpath))
-        nshift
+        nshiftRes = as.integer(getNshiftStr(shiftpath))
+        nshiftRes
     }
 )
 
@@ -55,8 +60,8 @@ Plotcoll$methods(
         shiftFilesStem <<- Sys.glob(paste(bedstem, "_shift_*.bed", sep=""))
         shiftFilesStem <<- getstem(shiftFilesStem)
         names(shiftFilesStem) <<- NULL
-        nshiftStrs <<- as.character(getNshift(shiftFilesStem))
-        nshiftStrs <<- c("0", nshiftStrs)
+        nshift <<- getNshift(shiftFilesStem)
+        nshiftStrs <<- as.character(nshift)
         shiftFilesStem <<- c(bedstem, shiftFilesStem)
     }
 )
@@ -201,26 +206,127 @@ Plotcoll$methods(
             message("Saving to ", outRdata, "...")
             save(chr, snp, bp, pvals, file=outRdata)
         }
+
+
+        if(chrunique[1] == 0) {
+            message("Nothing in the set of unique CHRs, calculating it...")
+            chrunique <<- unique(chr[, 1])
+        } else {
+            message("Unique set of CHRs:")
+            print(chrunique)
+        }
+
         minPvals <<- do.call(pminNoNA, as.data.frame(pvals))
+        
+        ntests <<- rep(0, nsnp)
+        # start with a reversed vector with inversed signs, see http://tinyurl.com/lnm48hj
+        for(i in nshift) {
+            ntests[1:i] <<- ntests[1:i] - 1
+        }
+        ntests <<- ntests - (ntests[1] - 1)
+        # reverse it back
+        ntests <<- rev(ntests)
+
+        # Bonferroni correction for minimal p values
+        minPvalsBonfer <<- minPvals * ntests
+        minPvalsBonfer <<- ifelse(minPvalsBonfer > 1, 1, minPvalsBonfer)
+
         message("Update info for SNP2...")
         snp2info()
     }
 )
 
 Plotcoll$methods(
-    basemh = function() {
-        baseplotObj = Mhplot(chr[, 1], bp[, 1], pvals[, 1])
+    basemh = function(chrfilter=NULL, bplower=NULL, bpupper=NULL, pvallower=NULL, pvalupper=NULL) {
+        filter = rep(TRUE, nsnp)
+        if(! is.null(chrfilter)) {
+            filter = chr[, 1] %in% chrfilter
+        }
+        if(! is.null(bplower)) {
+            filter = filter & bp[, 1] >= bplower
+        }
+        if(! is.null(bpupper)) {
+            filter = filter & bp[, 1] <= bpupper
+        }
+        if(! is.null(pvallower)) {
+            filter = filter & pvals[, 1] > pvallower
+        }
+        if(! is.null(pvalupper)) {
+            filter = filter & pvals[, 1] < pvalupper
+        }
+        baseplotObj = Mhplot(chr[filter, 1], bp[filter, 1], pvals[filter, 1])
         baseplot = baseplotObj$getmhplot()
         baseplot
     }
 )
 
 Plotcoll$methods(
-    minpmh = function() {
-        minpplotObj = Mhplot(chr[, 1], bp[, 1], minPvals)
+    minpmh = function(chrfilter=NULL, bplower=NULL, bpupper=NULL, pvallower=NULL, pvalupper=NULL) {
+        filter = rep(TRUE, nsnp)
+        if(! is.null(chrfilter)) {
+            filter = chr[, 1] %in% chrfilter
+        }
+        if(! is.null(bplower)) {
+            filter = filter & bp[, 1] >= bplower
+        }
+        if(! is.null(bpupper)) {
+            filter = filter & bp[, 1] <= bpupper
+        }
+        if(! is.null(pvallower)) {
+            filter = filter & pvals[, 1] > pvallower
+        }
+        if(! is.null(pvalupper)) {
+            filter = filter & pvals[, 1] < pvalupper
+        }
+
+        minpplotObj = Mhplot(chr[filter, 1], bp[filter, 1], minPvals[filter])
         minpplot = minpplotObj$getmhplot()
         minpplot = minpplot + geom_hline(yintercept = -log10(5e-8 / nshiftMax), color="yellow", alpha=0.2)
         minpplot
+    }
+)
+
+Plotcoll$methods(
+    contrastplot = function(chrfilter=NULL, bplower=NULL,
+        bpupper=NULL, pvallower=NULL, pvalupper=NULL, minpcorrect=TRUE
+    ) {
+        filter = rep(TRUE, nsnp)
+        if(! is.null(chrfilter)) {
+            filter = chr[, 1] %in% chrfilter
+        }
+        if(! is.null(bplower)) {
+            filter = filter & bp[, 1] >= bplower
+        }
+        if(! is.null(bpupper)) {
+            filter = filter & bp[, 1] <= bpupper
+        }
+        if(! is.null(pvallower)) {
+            filter = filter & pvals[, 1] > pvallower
+        }
+        if(! is.null(pvalupper)) {
+            filter = filter & pvals[, 1] < pvalupper
+        }
+        filter = which(filter)
+
+        # combine the variables
+        bothChr = c(chr[filter, 1], chr[filter, 1])
+        bothBp = c(bp[filter, 1], bp[filter, 1])
+        if(minpcorrect == TRUE) {
+            bothP = c(pvals[filter, 1], minPvalsBonfer[filter])
+        } else {
+            bothP = c(pvals[filter, 1], minPvals[filter])
+        }
+        colorvec = rep(c("Single SNP", "QCDH"), each=length(filter))
+
+        # get the order right
+        posorder = order(bothChr, bothBp)
+        bothChr = bothChr[posorder]
+        bothBp  = bothBp[posorder]
+        bothP   = bothP[posorder]
+        colorvec = colorvec[posorder]
+
+        colorvec = factor(colorvec)
+        Mhplot(bothChr, bothBp, bothP, colorvec=colorvec)$getmhplot()
     }
 )
 
@@ -242,6 +348,9 @@ Plotcoll$methods(
         chr2 <<- matrix(, 0, 0)
         snp2 <<- matrix(, 0, 0)
         bp2 <<- matrix(, 0, 0)
+        chrunique <<- 0
+        minPvalsBonfer <<- 1
+        minPvals <<- 1
     }
 )
 
@@ -251,26 +360,35 @@ Plotcoll$methods(
 setwd("~/data/sskn_regions_from_fan/AgeSexSskn/")
 plotobj = Plotcoll("sskn_reg.bed")
 plotobj$readout("assoc.linear")
-datForLocusZoom = data.frame(CHR=plotobj$chr[, 1], SNP=plotobj$snp[, 1], BP=plotobj$bp[, 1], P=plotobj$minPvals)
 
-for(nchr in unique(datForLocusZoom$CHR)) {
-    tmpdat = datForLocusZoom[which(datForLocusZoom$CHR == nchr), ]
-    print(nchr)
-    print(range(tmpdat$BP))
-    print(range(tmpdat$P, na.rm = TRUE))
-}
+plotobj$nsnp
+plotobj$nshift
+plotobj$nshiftMax
+plotobj$nshiftStrs
 
-write.table(datForLocusZoom, file = "datForLocusZoom.txt", col.names=TRUE, quote=FALSE, row.names=FALSE)
+
+## datForLocusZoom = data.frame(CHR=plotobj$chr[, 1], SNP=plotobj$snp[, 1], BP=plotobj$bp[, 1], P=plotobj$minPvals)
+## for(nchr in unique(datForLocusZoom$CHR)) {
+##     tmpdat = datForLocusZoom[which(datForLocusZoom$CHR == nchr), ]
+##     print(nchr)
+##     print(range(tmpdat$BP))
+##     print(range(tmpdat$P, na.rm = TRUE))
+## }
+## write.table(datForLocusZoom, file = "datForLocusZoom.txt", col.names=TRUE, quote=FALSE, row.names=FALSE)
 
 require(ggplot2)
 ## Baseplot = plotobj$basemh() + geom_point(size=19)
 ## Minpplot = plotobj$minpmh() + geom_point(size=19)
-Baseplot = plotobj$basemh()
-Minpplot = plotobj$minpmh()
+c1 = plotobj$contrastplot(minpcorrect = TRUE, chrfilter = 5)
+print(c1)
+Baseplot = plotobj$basemh(chrfilter = c(5))
 print(Baseplot)
+Baseplot = plotobj$basemh()
+print(Baseplot)
+Minpplot = plotobj$minpmh()
 print(Minpplot)
-ggsave(rs1exoBaseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknBaseplot.png", width = 9, height = 5)
-ggsave(rs1exoMinpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknMinpplot.png", width = 9, height = 5)
+ggsave(Baseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknBaseplot.pdf", width = 10, height = 5)
+ggsave(Minpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknMinpplot.pdf", width = 10, height = 5)
 ##2######################################
 
 ## setwd("~/data/sskn_regions_from_fan/AgeSexRed/")
