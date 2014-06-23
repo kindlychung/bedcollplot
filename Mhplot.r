@@ -66,7 +66,6 @@ Mhplot$methods(
 Mhplot$methods(
     getmhplot = function(annotation=NULL) {
         mydat = getdf()
-        browse()
         maxlogp = ceiling(max(mlogp, na.rm = TRUE))
         minlogp = min(mlogp, na.rm = TRUE)
         gwthresh = -log10(5e-8)
@@ -85,11 +84,13 @@ Mhplot$methods(
 
 
         if(!is.null(mydat$colorvec)) {
-            myplot = myplot + geom_point(aes(color=factor(paste0(colorvec, achr %% 2))), alpha=.6) +
-                scale_color_manual(guide=FALSE) 
+            myplot = myplot + geom_point(aes(color=factor(paste(colorvec, achr %% 2))), alpha=.6) +
+                ## scale_color_manual(values=c("gray20", "gray50", "steelblue1", "steelblue4"), guide=FALSE) 
+                scale_color_discrete(name="") 
         } else {
             myplot = myplot + geom_point(aes(color=factor(achr %% 2)), alpha=.6) +
-                scale_color_manual(guide=FALSE) 
+                ## scale_color_manual(values = c("gray40", "gray50"), guide=FALSE) 
+                scale_color_discrete(guide=FALSE) 
         } 
 
         myplot = myplot +
@@ -135,14 +136,12 @@ Mhplot$methods(
 
 
 
-require(ggplot2)
-plinkout = readplinkout("~/data/sskn_regions_from_fan/AgeSexRed/sskn_reg.assoc.logistic")
-## plinkout = plinkout[which(plinkout$CHR == 20), ]
-## plinkout = plinkout[which(plinkout$CHR == 16), ]
-colorvec = sample(0:1, nrow(plinkout), replace=TRUE)
-plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P, colorvec=colorvec)
-## plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P)
-plinkplot = plinkplotObj$getmhplot()
-print(plinkplot)
-plinkplot = plinkplot + geom_point(size=8)
-print(plinkplot)
+## require(ggplot2)
+## plinkout = readplinkout("~/data/sskn_regions_from_fan/AgeSexRed/sskn_reg.assoc.logistic")
+## ## plinkout = plinkout[which(plinkout$CHR == 20), ]
+## ## plinkout = plinkout[which(plinkout$CHR == 16), ]
+## colorvec = sample(0:1, nrow(plinkout), replace=TRUE)
+## plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P, colorvec=colorvec)
+## ## plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P)
+## plinkplot = plinkplotObj$getmhplot()
+## print(plinkplot)

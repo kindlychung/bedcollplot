@@ -1,4 +1,3 @@
-require(Matrix)
 pminNoNA = function(...) {
     pmin(..., na.rm = TRUE)
 }
@@ -261,7 +260,10 @@ Plotcoll$methods(
 )
 
 Plotcoll$methods(
-    minpmh = function(chrfilter=NULL, bplower=NULL, bpupper=NULL, pvallower=NULL, pvalupper=NULL) {
+    minpmh = function(
+        chrfilter=NULL, bplower=NULL, bpupper=NULL,
+        pvallower=NULL, pvalupper=NULL, minpcorrect=TRUE
+    ) {
         filter = rep(TRUE, nsnp)
         if(! is.null(chrfilter)) {
             filter = chr[, 1] %in% chrfilter
@@ -279,9 +281,12 @@ Plotcoll$methods(
             filter = filter & pvals[, 1] < pvalupper
         }
 
-        minpplotObj = Mhplot(chr[filter, 1], bp[filter, 1], minPvals[filter])
+        if(minpcorrect == TRUE) {
+            minpplotObj = Mhplot(chr[filter, 1], bp[filter, 1], minPvalsBonfer[filter])
+        } else {
+            minpplotObj = Mhplot(chr[filter, 1], bp[filter, 1], minPvals[filter])
+        }
         minpplot = minpplotObj$getmhplot()
-        minpplot = minpplot + geom_hline(yintercept = -log10(5e-8 / nshiftMax), color="yellow", alpha=0.2)
         minpplot
     }
 )
@@ -325,8 +330,25 @@ Plotcoll$methods(
         bothP   = bothP[posorder]
         colorvec = colorvec[posorder]
 
-        colorvec = factor(colorvec)
         Mhplot(bothChr, bothBp, bothP, colorvec=colorvec)$getmhplot()
+    }
+)
+
+Plotcoll$methods(
+    basepMinp = function(logpvals=TRUE, minpcorrect=TRUE) {
+        df = data.frame(basep = pvals[, 1])
+        if(minpcorrect == TRUE) {
+            df$minp = minPvalsBonfer
+        } else {
+            df$minp = minPvals
+        }
+
+        if(logpvals == TRUE) {
+            df$minp = -log10(df$minp)
+            df$basep = -log10(df$basep)
+        }
+
+        bmplot = ggplot(df, aes(basep, minp)) + geom_point(alpha=0.4)
     }
 )
 
@@ -365,7 +387,10 @@ plotobj$nsnp
 plotobj$nshift
 plotobj$nshiftMax
 plotobj$nshiftStrs
+plotobj$chrunique
 
+x = plotobj$basepMinp(minpcorrect = FALSE)
+print(x)
 
 ## datForLocusZoom = data.frame(CHR=plotobj$chr[, 1], SNP=plotobj$snp[, 1], BP=plotobj$bp[, 1], P=plotobj$minPvals)
 ## for(nchr in unique(datForLocusZoom$CHR)) {
@@ -377,12 +402,15 @@ plotobj$nshiftStrs
 ## write.table(datForLocusZoom, file = "datForLocusZoom.txt", col.names=TRUE, quote=FALSE, row.names=FALSE)
 
 require(ggplot2)
-## Baseplot = plotobj$basemh() + geom_point(size=19)
-## Minpplot = plotobj$minpmh() + geom_point(size=19)
-c1 = plotobj$contrastplot(minpcorrect = TRUE, chrfilter = 5)
-print(c1)
-Baseplot = plotobj$basemh(chrfilter = c(5))
-print(Baseplot)
+
+## for(i in plotobj$chrunique) {
+##     myplot = plotobj$contrastplot(chrfilter = i)
+##     outf = paste0("/tmp/", i, ".png")
+##     ggsave(myplot, filename = outf, width = 10, height = 5, dpi = 600)
+## }
+
+ggsave(c1, filename = "/tmp/c1.png", width = 10, height = 5, dpi = 600)
+ggsave(c2, filename = "/tmp/c2.png", width = 10, height = 5, dpi = 600)
 Baseplot = plotobj$basemh()
 print(Baseplot)
 Minpplot = plotobj$minpmh()
