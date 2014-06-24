@@ -59,7 +59,7 @@ Plotcoll$methods(
         shiftFilesStem <<- Sys.glob(paste(bedstem, "_shift_*.bed", sep=""))
         shiftFilesStem <<- getstem(shiftFilesStem)
         names(shiftFilesStem) <<- NULL
-        nshift <<- getNshift(shiftFilesStem)
+        nshift <<- c(0, getNshift(shiftFilesStem))
         nshiftStrs <<- as.character(nshift)
         shiftFilesStem <<- c(bedstem, shiftFilesStem)
     }
@@ -379,6 +379,18 @@ Plotcoll$methods(
 
 
 ##1######################################
+datadirs = Sys.glob("~/data/sskn_regions_from_fan/rand*")
+for(datadir in datadirs) {
+    ## datadir = "~/data/sskn_regions_from_fan/rand.1"
+    setwd(datadir)
+    plotobj = Plotcoll("sskn_reg.bed")
+    plotobj$readout("assoc.linear")
+    outf = paste0("/tmp/", basename(datadir), ".png")
+    message(sprintf("Plot base and min p values to %s", outf))
+    bmplot = plotobj$basepMinp(minpcorrect = FALSE)
+    ggsave(bmplot, filename = outf, width = 10, height = 5, dpi = 600)
+}
+
 setwd("~/data/sskn_regions_from_fan/AgeSexSskn/")
 plotobj = Plotcoll("sskn_reg.bed")
 plotobj$readout("assoc.linear")
