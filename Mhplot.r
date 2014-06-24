@@ -110,6 +110,17 @@ Mhplot$methods(
     }
 )
 
+Mhplot$methods(
+    qq = function() {
+        o = mlogp[!is.na(mlogp)]
+        o = sort(o, decreasing = TRUE)
+        e = -log10(ppoints(length(o)))
+        qqdat = data.frame(e, o)
+        qqplot = ggplot(qqdat, aes(e, o)) + geom_point(alpha=.4) +
+            xlab("Expected -log P") + ylab("Observed -log P") +
+            geom_abline(intercept=0, slope=1, alpha=.3)
+    }
+)
 
 Mhplot$methods(
     initialize = function(chrinit, bpinit, pvalsinit, snpinit="0", colorvec=factor(0)) {
@@ -137,11 +148,14 @@ Mhplot$methods(
 
 
 ## require(ggplot2)
-## plinkout = readplinkout("~/data/sskn_regions_from_fan/AgeSexRed/sskn_reg.assoc.logistic")
+## ## plinkout = readplinkout("~/data/sskn_regions_from_fan/AgeSexRed/sskn_reg.assoc.logistic")
+## plinkout = readplinkout("~/data/rs1exoseq/AgeSexSskn/ssknEx.assoc.linear")
 ## ## plinkout = plinkout[which(plinkout$CHR == 20), ]
 ## ## plinkout = plinkout[which(plinkout$CHR == 16), ]
-## colorvec = sample(0:1, nrow(plinkout), replace=TRUE)
-## plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P, colorvec=colorvec)
-## ## plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P)
-## plinkplot = plinkplotObj$getmhplot()
-## print(plinkplot)
+## ## colorvec = sample(0:1, nrow(plinkout), replace=TRUE)
+## ## plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P, colorvec=colorvec)
+## plinkplotObj = Mhplot(plinkout$CHR, plinkout$BP, plinkout$P)
+## ## plinkplot = plinkplotObj$getmhplot()
+## ## print(plinkplot)
+## qqplot = plinkplotObj$qq()
+## print(qqplot)

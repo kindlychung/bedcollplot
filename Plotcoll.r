@@ -254,8 +254,8 @@ Plotcoll$methods(
             filter = filter & pvals[, 1] < pvalupper
         }
         baseplotObj = Mhplot(chr[filter, 1], bp[filter, 1], pvals[filter, 1])
-        baseplot = baseplotObj$getmhplot()
-        baseplot
+        ## baseplot = baseplotObj$getmhplot()
+        ## baseplot
     }
 )
 
@@ -286,8 +286,9 @@ Plotcoll$methods(
         } else {
             minpplotObj = Mhplot(chr[filter, 1], bp[filter, 1], minPvals[filter])
         }
-        minpplot = minpplotObj$getmhplot()
-        minpplot
+        ## minpplot = minpplotObj$getmhplot()
+        ## minpplot
+        minpplotObj
     }
 )
 
@@ -379,30 +380,22 @@ Plotcoll$methods(
 
 
 ##1######################################
-datadirs = Sys.glob("~/data/sskn_regions_from_fan/rand*")
-for(datadir in datadirs) {
-    ## datadir = "~/data/sskn_regions_from_fan/rand.1"
-    setwd(datadir)
-    plotobj = Plotcoll("sskn_reg.bed")
-    plotobj$readout("assoc.linear")
-    outf = paste0("/tmp/", basename(datadir), ".png")
-    message(sprintf("Plot base and min p values to %s", outf))
-    bmplot = plotobj$basepMinp(minpcorrect = FALSE)
-    ggsave(bmplot, filename = outf, width = 10, height = 5, dpi = 600)
-}
+
+## datadirs = Sys.glob("~/data/sskn_regions_from_fan/rand*")
+## for(datadir in datadirs) {
+##     ## datadir = "~/data/sskn_regions_from_fan/rand.1"
+##     setwd(datadir)
+##     plotobj = Plotcoll("sskn_reg.bed")
+##     plotobj$readout("assoc.linear")
+##     outf = paste0("/tmp/", basename(datadir), ".png")
+##     message(sprintf("Plot base and min p values to %s", outf))
+##     bmplot = plotobj$basepMinp(minpcorrect = FALSE)
+##     ggsave(bmplot, filename = outf, width = 10, height = 5, dpi = 600)
+## }
 
 setwd("~/data/sskn_regions_from_fan/AgeSexSskn/")
 plotobj = Plotcoll("sskn_reg.bed")
 plotobj$readout("assoc.linear")
-
-plotobj$nsnp
-plotobj$nshift
-plotobj$nshiftMax
-plotobj$nshiftStrs
-plotobj$chrunique
-
-x = plotobj$basepMinp(minpcorrect = FALSE)
-print(x)
 
 ## datForLocusZoom = data.frame(CHR=plotobj$chr[, 1], SNP=plotobj$snp[, 1], BP=plotobj$bp[, 1], P=plotobj$minPvals)
 ## for(nchr in unique(datForLocusZoom$CHR)) {
@@ -421,14 +414,15 @@ require(ggplot2)
 ##     ggsave(myplot, filename = outf, width = 10, height = 5, dpi = 600)
 ## }
 
-ggsave(c1, filename = "/tmp/c1.png", width = 10, height = 5, dpi = 600)
-ggsave(c2, filename = "/tmp/c2.png", width = 10, height = 5, dpi = 600)
-Baseplot = plotobj$basemh()
-print(Baseplot)
-Minpplot = plotobj$minpmh()
-print(Minpplot)
-ggsave(Baseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknBaseplot.pdf", width = 10, height = 5)
-ggsave(Minpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknMinpplot.pdf", width = 10, height = 5)
+## ggsave(c1, filename = "/tmp/c1.png", width = 10, height = 5, dpi = 600)
+## ggsave(c2, filename = "/tmp/c2.png", width = 10, height = 5, dpi = 600)
+## Baseplot = plotobj$basemh()
+## print(Baseplot)
+## Minpplot = plotobj$minpmh()
+## print(Minpplot)
+## ggsave(Baseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknBaseplot.pdf", width = 10, height = 5)
+## ggsave(Minpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknMinpplot.pdf", width = 10, height = 5)
+
 ##2######################################
 
 ## setwd("~/data/sskn_regions_from_fan/AgeSexRed/")
@@ -443,19 +437,6 @@ ggsave(Minpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknMinpplo
 ## print(Minpplot)
 ## ggsave(Baseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegRedBaseplot.png", width = 9, height = 5, scale=5)
 ## ggsave(Minpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegRedMinpplot.png", width = 9, height = 5, scale=5)
-
-## plotobj$bimpath
-## plotobj$fampath
-## plotobj$nsnp
-## plotobj$nindiv
-## plotobj$bytesSnp
-## plotobj$bytesTotal
-## plotobj$sayhi("Kaiyin")
-
-
-## ?png
-## ?ggsave
-
 
 ## setwd("~/data/rs1exoseq/testReadout/")
 ## plotobj = Plotcoll("ssknEx.bed")
@@ -472,18 +453,20 @@ ggsave(Minpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/ssknRegSsknMinpplo
 ## ggsave(rs1exoBaseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/rs1exoBaseplotSskn.png", width = 9, height = 3)
 ## ggsave(rs1exoMinpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/rs1exoMinpplotSskn.png", width = 9, height = 3)
 
-## setwd("~/data/rs1exoseq/AgeSexSskn")
-## plotobj = Plotcoll("ssknEx.bed")
-## plotobj$readout("assoc.linear")
-## head(plotobj$snp)
-## head(plotobj$chr)
-## head(plotobj$bp)
-## head(plotobj$pvals)
-## require(ggplot2)
-## rs1exoBaseplot = plotobj$basemh()
-## rs1exoMinpplot = plotobj$minpmh()
-## ggsave(rs1exoBaseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/rs1exoBaseplotSskn.png", width = 9, height = 3)
-## ggsave(rs1exoMinpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/rs1exoMinpplotSskn.png", width = 9, height = 3)
+##3############
+## todo: test add and remove files!
+setwd("~/data/rs1exoseq/AgeSexSskn")
+plotobj = Plotcoll("ssknEx.bed")
+plotobj$readout("assoc.linear")
+require(ggplot2)
+rs1exoBaseplot = plotobj$basemh()
+print(rs1exoBaseplot$qq())
+print(rs1exoBaseplot$getmhplot())
+rs1exoMinpplot = plotobj$minpmh()
+print(rs1exoMinpplot$qq())
+print(rs1exoMinpplot$getmhplot())
+ggsave(rs1exoBaseplot, file="/home/kaiyin/projManuscripts/qcdh/figs/rs1exoBaseplotSskn.png", width = 9, height = 3)
+ggsave(rs1exoMinpplot, file="/home/kaiyin/projManuscripts/qcdh/figs/rs1exoMinpplotSskn.png", width = 9, height = 3)
 
 ## setwd("~/data/rs1exoseq/AgeSexHskn")
 ## plotobj = Plotcoll("ssknEx.bed")
